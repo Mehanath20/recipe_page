@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Interactive Recipe Book</title>
+
+  <!-- Bootstrap & jQuery (CDN) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0f1420; --panel:#151c2f; --muted:#9fb0d1; --text:#e8eefc; --accent:#7aa2ff; --border:#273556;
+      --peach:#FFDAB9; /* title color */
+    }
+    html,body{height:100%}
+    body{background:var(--bg); color:var(--text)}
+    a{color:var(--accent)}
+
+/* Quarter-height navbar with full rounded corners + image background */
+.navbar{
+  /* size: ~25% of the page */
+  height: 25vh;
+  min-height: 240px;          /* safety on small screens */
+  padding-block: 28px;
+
+  /* spacing so the rounded corners are visible against the page */
+  margin: 16px;               /* shows the curve on all sides */
+
+  /* rounded corners (all sides) */
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  overflow: hidden;           /* background respects the curve */
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+
+  /* readable over image: dark overlay + high-res background */
+  background:
+    linear-gradient(rgba(15,20,32,.78), rgba(15,20,32,.78)),
+    url("https://images.unsplash.com/photo-1504754524776-8f4f37790ca0?auto=format&fit=crop&w=2400&q=85&dpr=2")
+      center / cover no-repeat;
+}
+
+/* Vertically center existing navbar content within the taller bar */
+.navbar .container{
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* (same sizing as before; you can keep your current rules) */
+.navbar-brand{ display:flex; align-items:center; gap:.6rem; font-size:1.7rem; line-height:1 }
+.navbar-brand img{ height:56px; width:56px; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.25) }
+.navbar .form-control, .navbar .btn{ height:52px; padding:.5rem .9rem; font-size:1rem }
+
+/* Optional: if you want a bit less height on very small screens */
+@media (max-width: 420px){
+  .navbar{ height: 22vh; min-height: 200px }
+}
+
+    .card{
+      background:var(--panel); border:1px solid var(--border); height:100%;
+      transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+      cursor: default;
+    }
+    .card:hover{ transform: translateY(-6px); box-shadow:0 12px 30px rgba(0,0,0,.35); border-color:var(--accent) }
+    .card img{ height:160px; object-fit:cover; border-bottom:1px solid var(--border); transition:transform .4s ease, filter .4s ease }
+    .card:hover img{ transform:none; filter:none }
+    .card:focus-within{ outline:2px solid var(--accent); outline-offset:2px }
+
+    @media (prefers-reduced-motion: reduce){
+      .card,.card img{transition:none}
+      .card:hover{transform:none; box-shadow:none}
+      .card:hover img{transform:none; filter:none}
+    }
+
+    .form-control, .form-select{background:#0f1729; color:var(--text); border:1px solid var(--border)}
+    .form-control::placeholder{color:#8aa0c8}
+    .tag {font-size:.75rem; padding:.15rem .5rem; border:1px solid var(--border); border-radius:999px; margin-right:.35rem; color:var(--muted)}
+    .pill {border:1px solid var(--border); background:#0f1729}
+    .badge-soft{background:#0f1729; border:1px solid var(--border); color:var(--muted)}
+    .footer{color:#8aa0c8}
+    .empty{border:2px dashed var(--border); color:#8aa0c8; background:#0f1729}
+    .btn-accent{background:var(--accent); border:none}
+    .btn-accent:hover{filter:brightness(.95)}
+    .card-title{color:var(--peach)}
+  </style>
+</head>
+<body>
+  <!-- Header / Navbar -->
+  <nav class="navbar navbar-expand-lg">
+    <div class="container">
+      <!-- Added logo image -->
+      <a class="navbar-brand fw-bold text-white" href="#">
+        <img alt="RecipeBook Logo"
+             src="data:image/svg+xml;utf8,<?xml version='1.0'?><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><defs><linearGradient id='g' x1='0' x2='0' y1='0' y2='1'><stop offset='0' stop-color='%23ffd7c2'/><stop offset='1' stop-color='%23f7b28e'/></linearGradient></defs><rect rx='24' ry='24' width='120' height='120' fill='%23151c2f'/><g transform='translate(8,16)'><path d='M5 20c18-10 38-10 56 0v48c-18-10-38-10-56 0z' fill='url(%23g)' stroke='%23f1b79a' stroke-width='3'/><path d='M61 20c18-10 38-10 56 0v48c-18-10-38-10-56 0z' fill='url(%23g)' stroke='%23f1b79a' stroke-width='3'/></g><g transform='translate(65,18) rotate(20)'><rect x='-4' y='70' width='8' height='22' rx='4' fill='%23ced8ff'/><path d='M0 10 C10 20 14 40 0 60 C-14 40 -10 20 0 10z' fill='none' stroke='%23ced8ff' stroke-width='6'/></g></svg>">
+        RecipeBook
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div id="nav" class="collapse navbar-collapse">
+        <div class="ms-auto d-flex gap-2 my-2 my-lg-0">
+          <input id="search" type="search" class="form-control" placeholder="Search by name or ingredient…" />
+          <button id="clearSearch" class="btn btn-outline-light">Clear</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Filters -->
+  <section class="container mt-4">
+    <div class="row g-3 align-items-end">
+      <div class="col-12 col-md-4">
+        <label class="form-label">Cuisine</label>
+        <select id="cuisineFilter" class="form-select pill">
+          <option value="">All</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-4">
+        <label class="form-label">Difficulty</label>
+        <select id="difficultyFilter" class="form-select pill">
+          <option value="">All</option>
+          <option>Easy</option>
+          <option>Medium</option>
+          <option>Hard</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-4">
+        <label class="form-label">Diet</label>
+        <select id="dietFilter" class="form-select pill">
+          <option value="">All</option>
+          <option>Vegetarian</option>
+          <option>Vegan</option>
+          <option>Non-Veg</option>
+          <option>Gluten-Free</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Active filter chips -->
+    <div id="activeFilters" class="mt-3"></div>
+  </section>
+
+  <!-- Recipe Grid -->
+  <main class="container my-4">
+    <div id="grid" class="row g-4"></div>
+    <div id="emptyState" class="empty rounded-3 p-5 text-center d-none">
+      <h5 class="mb-2">No recipes found</h5>
+      <p class="mb-0">Try clearing some filters or using a different search term.</p>
+    </div>
+  </main>
+
+  <!-- Details Modal -->
+  <div class="modal fade" id="recipeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content" style="background:#0f1729;color:#e8eefc;border:1px solid #273556">
+        <div class="modal-header">
+          <h5 id="modalTitle" class="modal-title"></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <img id="modalImg" class="w-100 rounded mb-3" style="max-height:300px; object-fit:cover;" alt="">
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <span id="modalCuisine" class="tag"></span>
+            <span id="modalDifficulty" class="tag"></span>
+            <span id="modalDiet" class="tag"></span>
+            <span id="modalTime" class="tag"></span>
+          </div>
+          <p id="modalDesc" class="mb-3"></p>
+          <div class="row g-4">
+            <div class="col-md-6">
+              <h6 class="mb-2">Ingredients</h6>
+              <ul id="modalIngredients" class="ps-3"></ul>
+            </div>
+            <div class="col-md-6">
+              <h6 class="mb-2">Steps</h6>
+              <ol id="modalSteps" class="ps-3"></ol>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-accent" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ---------- Demo Data ---------- */
+    const RECIPES = [
+      { id:"pasta-alfredo", title:"Creamy Alfredo Pasta",
+        image:"https://www.halfbakedharvest.com/wp-content/uploads/2021/04/One-Pot-Creamy-Penne-Alfredo-with-Spicy-Arugula-1.jpg?q=80&w=1200&auto=format&fit=crop",
+        desc:"Rich and creamy fettuccine tossed in parmesan Alfredo sauce.",
+        cuisine:"Italian", difficulty:"Easy", diet:"Vegetarian", time:"25 min",
+        ingredients:["Fettuccine","Butter","Garlic","Cream","Parmesan","Salt","Pepper","Parsley"],
+        steps:["Boil pasta until al dente.","Melt butter and sauté garlic.","Stir in cream; simmer 2–3 min.","Add parmesan until silky.","Toss pasta, season, garnish with parsley."]},
+      { id:"paneer-tikka", title:"Paneer Tikka Skewers",
+        image:"https://tse2.mm.bing.net/th/id/OIP.pLokUk8MuCR8eRxuKGUIkwHaHa?rs=1&pid=ImgDetMain&o=7&rm=3?q=80&w=2000&auto=format&fit=crop",
+        desc:"Marinated paneer cubes grilled with peppers and onions.",
+        cuisine:"Indian", difficulty:"Medium", diet:"Vegetarian", time:"40 min",
+        ingredients:["Paneer","Yogurt","Ginger-garlic paste","Tandoori masala","Lemon","Capsicum","Onion","Oil","Salt"],
+        steps:["Whisk yogurt with spices and lemon.","Marinate paneer & veggies 20–30 min.","Skewer alternately.","Grill or pan-sear until charred.","Serve with mint chutney."]},
+      { id:"chicken-teriyaki", title:"Chicken Teriyaki Bowl",
+        image:"https://tse2.mm.bing.net/th/id/OIP.zBI9pbXXOyzr2-ADRqD3YAHaLJ?rs=1&pid=ImgDetMain&o=7&rm=3?q=80&w=1200&auto=format&fit=crop",
+        desc:"Sweet-savoury glazed chicken served over steamed rice.",
+        cuisine:"Japanese", difficulty:"Easy", diet:"Non-Veg", time:"30 min",
+        ingredients:["Chicken thighs","Soy sauce","Mirin","Sugar","Ginger","Garlic","Rice","Sesame"],
+        steps:["Whisk soy, mirin, sugar, aromatics.","Sear chicken; add sauce and reduce.","Slice chicken; glaze with sauce.","Serve on rice; sprinkle sesame."]},
+      { id:"quinoa-salad", title:"Mediterranean Quinoa Salad",
+        image:"https://thewillowskitchen.com/wp-content/uploads/2022/04/mediterranean-quinoa-salad-01.jpg?q=80&w=1200&auto=format&fit=crop",
+        desc:"Fresh quinoa tossed with cucumber, tomato, olives and herbs.",
+        cuisine:"Mediterranean", difficulty:"Easy", diet:"Vegan", time:"20 min",
+        ingredients:["Quinoa","Cucumber","Tomato","Olives","Onion","Olive oil","Lemon","Parsley","Salt","Pepper"],
+        steps:["Cook and cool quinoa.","Chop veggies; make lemon-olive oil dressing.","Toss all; season to taste."]},
+      { id:"tacos", title:"Fish Tacos with Slaw",
+        image:"https://images.unsplash.com/photo-1552332386-f8dd00dc2f85?q=80&w=1200&auto=format&fit=crop",
+        desc:"Crispy fish in warm tortillas with zesty slaw.",
+        cuisine:"Mexican", difficulty:"Medium", diet:"Gluten-Free", time:"35 min",
+        ingredients:["White fish","Tortillas (GF)","Cabbage","Lime","Yogurt/Mayo","Chili powder","Cilantro","Salt","Pepper"],
+        steps:["Mix slaw with lime dressing.","Season fish; pan-fry until crisp.","Warm tortillas; assemble tacos.","Top with slaw & cilantro."]},
+      { id:"ramen", title:"Miso Ramen",
+        image:"https://tse1.mm.bing.net/th/id/OIP.vorb4Q2miSKhRXsrcE_s3AHaFj?rs=1&pid=ImgDetMain&o=7&rm=3?q=80&w=1200&auto=format&fit=crop",
+        desc:"Comforting miso broth with noodles and veggies.",
+        cuisine:"Japanese", difficulty:"Hard", diet:"Non-Veg", time:"1 hr",
+        ingredients:["Ramen noodles","Chicken stock","Miso paste","Soy","Ginger","Garlic","Egg","Scallions","Corn","Nori"],
+        steps:["Simmer stock with aromatics; whisk in miso.","Boil noodles separately.","Assemble bowls with toppings."]},
+      { id:"margherita-pizza", title:"Margherita Pizza",
+        image:"https://cdn.loveandlemons.com/wp-content/uploads/2019/09/margherita-pizza.jpg?q=80&w=1200&auto=format&fit=crop",
+        desc:"Thin crust with tomato sauce, fresh mozzarella and basil.",
+        cuisine:"Italian", difficulty:"Medium", diet:"Vegetarian", time:"30 min",
+        ingredients:["Pizza dough","Tomato sauce","Fresh mozzarella","Basil","Olive oil","Salt"],
+        steps:["Stretch dough.","Spread sauce and cheese.","Bake hot until blistered.","Finish with basil and oil."]},
+      { id:"butter-chicken", title:"Butter Chicken (Murgh Makhani)",
+        image:"https://tse4.mm.bing.net/th/id/OIP.i5W0GJL26hiwsk6iGoFx1gHaJQ?rs=1&pid=ImgDetMain&o=7&rm=3?q=80&w=1200&auto=format&fit=crop",
+        desc:"Creamy tomato-based curry with tender chicken.",
+        cuisine:"Indian", difficulty:"Medium", diet:"Non-Veg", time:"45 min",
+        ingredients:["Chicken","Butter","Tomato puree","Cream","Garam masala","Ginger","Garlic"],
+        steps:["Marinate & sear chicken.","Simmer tomato gravy with spices.","Stir in butter & cream.","Combine and serve."]},
+      { id:"caesar-salad", title:"Classic Caesar Salad",
+        image:"https://tse4.mm.bing.net/th/id/OIP.064MqN9x0xg4BSi1ie0u5AHaJ4?rs=1&pid=ImgDetMain&o=7&rm=3?q=80&w=1200&auto=format&fit=crop",
+        desc:"Crisp romaine with creamy dressing and croutons.",
+        cuisine:"American", difficulty:"Easy", diet:"Non-Veg", time:"15 min",
+        ingredients:["Romaine","Croutons","Parmesan","Anchovy","Garlic","Lemon","Olive oil","Egg"],
+        steps:["Blend dressing.","Toss lettuce with dressing.","Top with croutons and parmesan."]},
+      { id:"brownies", title:"Fudgy Chocolate Brownies",
+        image:"https://tse4.mm.bing.net/th/id/OIP.kb3FWuH7juXo-S52F2lKXQHaLH?rs=1&pid=ImgDetMain&o=7&rm=3?q=80&w=1200&auto=format&fit=crop",
+        desc:"Dense, fudgy brownies with crackly tops.",
+        cuisine:"Dessert", difficulty:"Easy", diet:"Vegetarian", time:"35 min",
+        ingredients:["Butter","Sugar","Eggs","Cocoa","Flour","Salt","Vanilla"],
+        steps:["Melt butter with sugar.","Whisk in eggs & cocoa.","Fold flour & salt.","Bake until set."]},
+      { id:"avocado-toast", title:"Avocado Toast",
+        image:"https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1200&auto=format&fit=crop",
+        desc:"Smashed avocado on toasted bread with toppings.",
+        cuisine:"Fusion", difficulty:"Easy", diet:"Vegan", time:"10 min",
+        ingredients:["Bread","Avocado","Lemon","Salt","Pepper","Chili flakes"],
+        steps:["Toast bread.","Mash avocado with lemon & salt.","Spread and garnish."]},
+      { id:"greek-gyros", title:"Greek Chicken Gyros",
+        image:"https://tse1.mm.bing.net/th/id/OIP.veLUWHutXHbvDjXDg6JiLgHaLH?rs=1&pid=ImgDetMain&o=7&rm=3?q=80&w=1200&auto=format&fit=crop",
+        desc:"Marinated chicken wrapped in pita with tzatziki.",
+        cuisine:"Greek", difficulty:"Medium", diet:"Non-Veg", time:"45 min",
+        ingredients:["Chicken","Pita","Yogurt","Cucumber","Garlic","Lemon","Oregano","Tomato","Onion"],
+        steps:["Marinate & grill chicken.","Make tzatziki.","Assemble in warm pitas."]},
+      { id:"sushi-rolls", title:"Veg Sushi Rolls",
+        image:"https://i.pinimg.com/originals/dd/18/dd/dd18dd6ef804c237b547cf465522e0b0.jpg?q=80&w=1200&auto=format&fit=crop",
+        desc:"Simple maki with cucumber and avocado.",
+        cuisine:"Japanese", difficulty:"Medium", diet:"Vegan", time:"50 min",
+        ingredients:["Sushi rice","Nori","Cucumber","Avocado","Rice vinegar","Soy sauce"],
+        steps:["Cook & season rice.","Spread on nori; add fillings.","Roll tight and slice."]},
+      { id:"shakshuka", title:"Shakshuka",
+        image:"https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1200&auto=format&fit=crop",
+        desc:"Eggs poached in a spiced tomato-pepper sauce.",
+        cuisine:"Middle Eastern", difficulty:"Easy", diet:"Vegetarian", time:"30 min",
+        ingredients:["Tomatoes","Bell pepper","Onion","Garlic","Paprika","Eggs","Parsley"],
+        steps:["Sauté veg & spices.","Simmer sauce.","Crack eggs and poach; garnish."]},
+      { id:"pad-thai", title:"Pad Thai",
+        image:"https://tse1.mm.bing.net/th/id/OIP.xjgEqaKOzP9rCS9T3OMmQgHaHa?rs=1&pid=ImgDetMain&o=7&rm=3?q=80&w=1200&auto=format&fit=crop",
+        desc:"Stir-fried rice noodles with tamarind and peanuts.",
+        cuisine:"Thai", difficulty:"Medium", diet:"Non-Veg", time:"35 min",
+        ingredients:["Rice noodles","Egg","Tamarind","Fish sauce","Sugar","Tofu/Chicken","Bean sprouts","Peanuts"],
+        steps:["Soak noodles.","Stir-fry aromatics and egg.","Add noodles & sauce; toss with sprouts and peanuts."]},
+      { id:"ratatouille", title:"Ratatouille",
+        image:"https://tse1.mm.bing.net/th/id/OIP.FzwQxzdSOQSImQB2II-ldwHaLH?rs=1&pid=ImgDetMain&o=7&rm=3?q=80&w=1200&auto=format&fit=crop",
+        desc:"Baked Provençal vegetable medley.",
+        cuisine:"French", difficulty:"Medium", diet:"Vegan", time:"50 min",
+        ingredients:["Eggplant","Zucchini","Tomato","Bell pepper","Onion","Garlic","Herbs","Olive oil"],
+        steps:["Slice veggies.","Layer with sauce.","Bake until tender."]}
+    ];
+
+    /* ---------- Helpers ---------- */
+    const uniq = arr => [...new Set(arr)].sort((a,b)=>a.localeCompare(b));
+
+    function buildFilterOptions() {
+      const cuisines = uniq(RECIPES.map(r => r.cuisine));
+      const $c = $('#cuisineFilter');
+      cuisines.forEach(c => $c.append(<option>${c}</option>));
+    }
+
+    function renderGrid(recipes){
+      const $grid = $('#grid').empty();
+      if(recipes.length === 0){
+        $('#emptyState').removeClass('d-none');
+        return;
+      }
+      $('#emptyState').addClass('d-none');
+
+      recipes.forEach(r=>{
+        $grid.append(`
+          <div class="col-12 col-sm-6 col-lg-4">
+            <div class="card h-100 shadow-sm">
+              <img src="${r.image}" class="card-img-top" alt="${r.title}">
+              <div class="card-body d-flex flex-column">
+                <h5 class="card-title">${r.title}</h5>
+                <p class="card-text text-secondary">${r.desc}</p>
+                <div class="mt-auto d-flex flex-wrap gap-2">
+                  <span class="tag">${r.cuisine}</span>
+                  <span class="tag">${r.difficulty}</span>
+                  <span class="tag">${r.diet}</span>
+                  <span class="tag">${r.time}</span>
+                </div>
+                <button class="btn btn-accent w-100 mt-3 view-btn" data-id="${r.id}">View Recipe</button>
+              </div>
+            </div>
+          </div>
+        `);
+      });
+    }
+
+    function activeFiltersUI() {
+      const q = $('#search').val().trim();
+      const c = $('#cuisineFilter').val();
+      const d = $('#difficultyFilter').val();
+      const di = $('#dietFilter').val();
+
+      const chips = [];
+      if(q) chips.push(<span class="badge badge-soft rounded-pill px-3">Search: ${q} <a class="ms-1 text-decoration-none" href="#" data-clear="search">×</a></span>);
+      if(c) chips.push(<span class="badge badge-soft rounded-pill px-3">Cuisine: ${c} <a class="ms-1 text-decoration-none" href="#" data-clear="cuisine">×</a></span>);
+      if(d) chips.push(<span class="badge badge-soft rounded-pill px-3">Difficulty: ${d} <a class="ms-1 text-decoration-none" href="#" data-clear="difficulty">×</a></span>);
+      if(di) chips.push(<span class="badge badge-soft rounded-pill px-3">Diet: ${di} <a class="ms-1 text-decoration-none" href="#" data-clear="diet">×</a></span>);
+
+      $('#activeFilters').html(chips.join(' '));
+    }
+
+    function applyFilters(){
+      const q = $('#search').val().toLowerCase().trim();
+      const cuisine = $('#cuisineFilter').val();
+      const difficulty = $('#difficultyFilter').val();
+      const diet = $('#dietFilter').val();
+
+      const out = RECIPES.filter(r=>{
+        const inText = (r.title + ' ' + r.ingredients.join(' ')).toLowerCase();
+        const matchQ = !q || inText.includes(q);
+        const matchC = !cuisine || r.cuisine === cuisine;
+        const matchD = !difficulty || r.difficulty === difficulty;
+        const matchDiet = !diet || r.diet === diet;
+        return matchQ && matchC && matchD && matchDiet;
+      });
+
+      activeFiltersUI();
+      renderGrid(out);
+    }
+
+    function openModal(recipe){
+      $('#modalTitle').text(recipe.title);
+      $('#modalImg').attr({src: recipe.image, alt: recipe.title});
+      $('#modalCuisine').text(recipe.cuisine);
+      $('#modalDifficulty').text(recipe.difficulty);
+      $('#modalDiet').text(recipe.diet);
+      $('#modalTime').text(recipe.time);
+      $('#modalDesc').text(recipe.desc);
+
+      const $ing = $('#modalIngredients').empty();
+      recipe.ingredients.forEach(i=>$ing.append(<li>${i}</li>));
+
+      const $steps = $('#modalSteps').empty();
+      recipe.steps.forEach(s=>$steps.append(<li>${s}</li>));
+
+      const modal = new bootstrap.Modal('#recipeModal');
+      modal.show();
+    }
+
+    /* ---------- Events ---------- */
+    $(function(){
+      buildFilterOptions();
+      renderGrid(RECIPES);
+      activeFiltersUI();
+
+      $('#search').on('input', applyFilters);
+      $('#clearSearch').on('click', function(){
+        $('#search').val(''); applyFilters();
+      });
+      $('#cuisineFilter, #difficultyFilter, #dietFilter').on('change', applyFilters);
+
+      $('#activeFilters').on('click','a[data-clear]', function(e){
+        e.preventDefault();
+        const which = $(this).data('clear');
+        if(which==='search') $('#search').val('');
+        if(which==='cuisine') $('#cuisineFilter').val('');
+        if(which==='difficulty') $('#difficultyFilter').val('');
+        if(which==='diet') $('#dietFilter').val('');
+        applyFilters();
+      });
+
+      $('#grid').on('click','.view-btn', function(){
+        const id = $(this).data('id');
+        const recipe = RECIPES.find(r=>r.id===id);
+        if(recipe) openModal(recipe);
+      });
+    });
+  </script>
+
+  <!-- Footer -->
+  <footer class="footer container pb-5">
+    <hr class="border-secondary opacity-25">
+    <p class="text-center mb-0 fw-semibold text-uppercase">
+      &copy; 2025 • BUILT WITH HTML, CSS, JAVASCRIPT, BOOTSTRAP, AND JQUERY.
+    </p>
+  </footer>
+
+</body>
+</html>
